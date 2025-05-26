@@ -4,31 +4,53 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
 
+; 14 MREQ
+; 15 RFSH
+; 16 BUSAK
+; 17 IORQ
+; 18 RD
+; 19 A0
+; 20 RAMCE2
+; 21 RAMWE
+; 22 TEST
+; 23 NC
+; 24 NC
+; 25 NC
+; 26 RESET
+; 27 WAIT
+; 28 BUSRQ
+; 29 NC
+
 ; SET pin 0 should be mapped to your LED GPIO
 
-.program blink
-    pull block
-    out y, 32
+; JMP_PIN:  15(RFSH_Pin)
+; SET_BASE: 27(WAIT_Pin), COUNT: 1
+; 11 instructions
+.program databus_control
+    wait 1 gpio 26       ; wait for RESET negate
+    wait 1 gpio 14       ; wait for MREQ High
 .wrap_target
-    mov x, y
-    set pins, 1   ; Turn LED on
-lp1:
-    jmp x-- lp1   ; Delay for (x + 1) cycles, x is a 32 bit number
-    mov x, y
-    set pins, 0   ; Turn LED off
-lp2:
-    jmp x-- lp2   ; Delay for the same number of cycles again
-.wrap             ; Blink forever!
-
+top:
+    wait 0 gpio 14       ; wait MREQ Low
+    jmp pin mreq_handle     ; RFSH cycle, skip it
+    jmp top
+mreq_handle:
+    set pins, 0         ; WAIT Low
+    push                ; notify an access occurs
+    pull                ; wait for RD/WR databus handling over
+    set pins, 1         ; WAIT High
+    wait 1 gpio 14       ; wait for MREQ cycle end
+    push                ; notify end-of-cycle
+.wrap
 
 % c-sdk {
 // this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
 
-void blink_program_init(PIO pio, uint sm, uint offset, uint pin) {
-   pio_gpio_init(pio, pin);
-   pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-   pio_sm_config c = blink_program_get_default_config(offset);
-   sm_config_set_set_pins(&c, pin, 1);
+void databus_control_program_init(PIO pio, uint sm, uint offset) {
+   pio_gpio_init(pio, 27);      // WAIT_Pin
+   pio_sm_set_consecutive_pindirs(pio, sm, 27, 1, true);    // as output
+   pio_sm_config c = databus_control_program_get_default_config(offset);
+   sm_config_set_set_pins(&c, 27, 1);
    pio_sm_init(pio, sm, offset, &c);
 }
 %}

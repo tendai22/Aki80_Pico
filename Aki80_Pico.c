@@ -34,6 +34,10 @@ void sram_control_forever(PIO pio, uint sm, uint offset) {
     sram_control_program_init(pio, sm, offset);
 }
 
+void databus_control_forever(PIO pio, uint sm, uint offset) {
+    databus_control_program_init(pio, sm, offset);
+}
+
 // UART defines
 // By default the stdout UART is `uart0`, so we will use the second one
 #define UART_ID uart0
@@ -149,50 +153,39 @@ int main()
     //TOGGLE();
 
     // GPIO In
-    // MREQ, IORQ, RD, RFSH, M1 are covered by PIO
+    // MREQ, RFSH are covered by PIO
     //
-    gpio_init_mask(0xfff);     // D0-D7,A0-A3 input 
+    gpio_init_mask(0x7ff);     // D0-D7,A5,6,7 input 
     gpio_set_dir_masked(0xff, 0);   // D0-D7 input
-    //gpio_init(BUSAK_Pin);
+    gpio_init(BUSAK_Pin);
+    gpio_init(RFSH_Pin);
+    // MREQ, IORQ, RD may be Hi-Z, so weak pullup
     gpio_init(MREQ_Pin);
     gpio_set_pulls(MREQ_Pin, true, false);
     gpio_init(IORQ_Pin);
     gpio_set_pulls(IORQ_Pin, true, false);
-    gpio_init(RFSH_Pin);
-    gpio_set_pulls(RFSH_Pin, true, false);
     gpio_init(RD_Pin);
     gpio_set_pulls(RD_Pin, true, false);
 
-    // PIO Blinking example
-    PIO pio_clock = pio0;
-    PIO pio_wait = pio1;
-    uint sm_clock = 0;
-
     // pio_set_gpio_base should be invoked before pio_add_program
     uint offset1;
-    offset1 = pio_add_program(pio_clock, &clockgen_program);
-    printf("clockgen_program at %d\n", offset1);
-    // two-phase: (4 instruction loop)
-    //  16.0 ... 2.33MHz (420ns/cycle)
-    //   9.42 ... 4.0MHz  (250ns/cycle)
-    // single clock: (2 instruction loop)
-    //  50.0 ... 1.5MHz (660-670ns) 
-    //  30.0 ... 2.5MHz (400ns) ... no wait, 
-    //  18.7 ... 4.0-4.17MHz (250-260ns) .... 0/1 wait in M1, 1 wait in WR, 0/1 wait in RD
-    //  10.0 ... 7.1-7.6MHz (130-140ns) ... seems to work
-    //   5.0 ... 14-16MHz (60-70ns) ... does not works
-
-    clockgen_pin_forever(pio_clock, sm_clock, offset1, CLK_Pin, 1, 60.0);
+    offset1 = pio_add_program(pio0, &databus_control_program);
+    printf("databus_control_program at %d\n", offset1);
+    databus_control_pin_forever(pio0, 0, offset1);
 
     // Use some the various UART functions to send out data
     // In a default system, printf will also output via the default UART
     
     // Send out a string, with CR/LF conversions
     uart_puts(UART_ID, " Hello, UART!\r\n");
-    
-    // start CPU clock
-    pio_sm_set_enabled(pio_clock, sm_clock, true);
-    sleep_us(20);
+
+    // test program
+    // start CPU and examine signal transition
+    gpio_put(WAIT_Pin, true);
+    gpio_put(RESET_Pin, true);
+
+    // infinite loop
+    while(true);
 
     // boot ... expand Z80 program to SRAM
     boot(0, &ram16[0], sizeof ram16);
@@ -210,10 +203,21 @@ int main()
 
     int count = 3;    
     while (true) {
-        if (count > 0) {
-            printf("Hello, world!\n");
-            count--;
+        data = pio_sm_get_blocking(pio0, 0);    // wait for MREQ cycle start
+        status = gpio_get_all() >> 14;
+        // bit0: MREQ
+        // bit1: RFSH
+        // bit2: BUSAK
+        // bit3: IORQ
+        // bit4: RD
+        // bit5: A0
+        if ((status & (1<<4)) == 0) {   // RD cycle
+            gpio_set_dir_masked(0xff, 0xff);    // D0-D7 output
+            gpio_put_masked(0xff, 0);   // put NOP
+            pio_sm_put(pio0, 0, 0);
+            pio_sm_get_blocking(pio0, 0);   // wait for MREQ cycle end
+            gpio_set_dir_masked(0xff, 0);   // D0-D7 input
         }
-        sleep_ms(1000);
+
     }
 }
