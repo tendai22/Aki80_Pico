@@ -6,7 +6,7 @@
 
 ## 基本アイディア
 
-<img src="img/001-Aki80_Pico.png"/>
+<img width=500 src="img/001-Aki80_Pico.png"/>
 
 * ROMソケットに下駄を咬ませて SRAM を載せる。
 * SRAM は ROM 代わりとする。0000-7FFF アクセス時にデータを返す。
@@ -17,7 +17,7 @@
 
 ## ハードウェア
 
-<img width=500 src="img/008-Aki80_schematics.png"/>
+<img width=700 src="img/008-Aki80_schematics.png"/>
 
 * Dual-84/Aki-80 ボードの ROM ソケットに下駄経由で 1MB SRAM を接続する。D0-D7, A0-A14, CE, OE は ROM の端子をそのまま接続する。1MB SRAM の残り 2 本の制御端子 CE2, WE は Pico と直結する。
 
@@ -30,7 +30,7 @@
 
 秋月B基板上に Dual-80/Aki80 基板と Pico、シリアル6ピンを2つ並べる。
 
-<img width=500 src="img/009-Aki80_Board_Layout.png"/>
+<img width=700 src="img/009-Aki80_Board_Layout.png"/>
 
 + Pico 用ピンソケットのわきにピンヘッダを立て、ロジアナ観測用の Pico 端子を引き出しておく。
 + Pico 用ピンソケットの空きピンに、ロジアナ観測のためのZ80端子を引き出しておく。
@@ -41,7 +41,7 @@
 
 搭載 SRAM として、32ピン 1Mbit SRAM を用いる。アドレス信号は A16 まである。CEは2本、負論理と正論理(CE2)、あと、OE, WE もある。
 
-<img width=500 src="img/010-bootload_schematic.png"/>
+<img width=700 src="img/010-bootload_schematic.png"/>
 
 Dual-84/Aki-80 の ROM ソケットは 256kbit ROM 用で、アドレスは A0-A14 まで。A15, A16 は空くので、固定するためにプルダウンしておく。
 
