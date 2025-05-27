@@ -35,22 +35,30 @@ top:
     jmp pin mreq_handle     ; RFSH cycle, skip it
     jmp top
 mreq_handle:
-    set pins, 0         ; WAIT Low
+    set pins, 2         ; WAIT Low, BUSRQ High
     push                ; notify an access occurs
     pull                ; wait for RD/WR databus handling over
-    set pins, 1         ; WAIT High
+    set pins, 1         ; WAIT High, BUSRQ Low
     wait 1 gpio 14       ; wait for MREQ cycle end
     push                ; notify end-of-cycle
+    wait 0 gpio 16      ; wait for BUSAK Low
+    pull                ; wait for PINDIR 0x00
+    set pins, 3         ; WAIT High, BUSRQ High
 .wrap
 
 % c-sdk {
 // this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
 
 void databus_control_program_init(PIO pio, uint sm, uint offset) {
-   pio_gpio_init(pio, 27);      // WAIT_Pin
-   pio_sm_set_consecutive_pindirs(pio, sm, 27, 1, true);    // as output
-   pio_sm_config c = databus_control_program_get_default_config(offset);
-   sm_config_set_set_pins(&c, 27, 1);
-   pio_sm_init(pio, sm, offset, &c);
+    // SET_BASE: 27(WAIT_Pin), 28(BUSRQ_Pin), COUNT: 2
+    pio_gpio_init(pio, 27);      // WAIT_Pin
+    pio_gpio_init(pio, 28);      // WAIT_Pin
+    pio_sm_set_consecutive_pindirs(pio, sm, 27, 2, true);    // as output
+    pio_sm_config c = databus_control_program_get_default_config(offset);
+    sm_config_set_set_pins(&c, 27, 2);
+    // JMP_PIN:  15(RFSH_Pin)
+    pio_gpio_init(pio, 15);         // RFSH_Pin
+    sm_config_set_jmp_pin(&c, 15);
+    pio_sm_init(pio, sm, offset, &c);
 }
 %}

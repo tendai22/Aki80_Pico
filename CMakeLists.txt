@@ -40,11 +40,14 @@ add_executable(Aki80_Pico Aki80_Pico.c )
 pico_set_program_name(Aki80_Pico "Aki80_Pico")
 pico_set_program_version(Aki80_Pico "0.1")
 
+# copy_to_ram means bootloader copies binaries to RAM and execute it
+pico_set_binary_type(Aki80_Pico copy_to_ram)
+
 # Generate PIO header
 pico_generate_pio_header(Aki80_Pico ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(Aki80_Pico 0)
+pico_enable_stdio_uart(Aki80_Pico 1)
 pico_enable_stdio_usb(Aki80_Pico 0)
 
 # Add the standard library to the build
