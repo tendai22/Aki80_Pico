@@ -131,6 +131,18 @@ void boot(uint16_t start, uint8_t *buf, int length)
 
 int main()
 {
+    // test pin, scratch its initial point
+    gpio_out_init(TEST_Pin, true);
+    TOGGLE();
+    TOGGLE();
+
+    // GPIO Out
+    gpio_out_init(WAIT_Pin, true);
+    gpio_out_init(RESET_Pin, false);
+    gpio_out_init(BUSRQ_Pin, true);
+    gpio_out_init(RAMCE2_Pin, false);
+    gpio_out_init(RAMWE_Pin, true);
+
     stdio_init_all();
     // Set up our UART
     uart_init(UART_ID, BAUD_RATE);
@@ -139,17 +151,6 @@ int main()
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
-    // GPIO Out
-    gpio_out_init(WAIT_Pin, true);
-    gpio_out_init(RESET_Pin, false);
-    gpio_out_init(BUSRQ_Pin, true);
-    //gpio_out_init(INT_Pin, false);      // INT Pin has an inverter, so negate signal is needed
-    gpio_out_init(OE_Pin, true);
-    gpio_out_init(WE_Pin, true);
-
-    gpio_out_init(TEST_Pin, true);
-    TOGGLE();
-    TOGGLE();
     //TOGGLE();
 
     // GPIO In
@@ -179,7 +180,7 @@ int main()
     // Send out a string, with CR/LF conversions
     uart_puts(UART_ID, " Hello, UART!\r\n");
 
-    // test program
+    // test program 1: Z80 Free Run
     // start CPU and examine signal transition
     gpio_put(WAIT_Pin, true);
     gpio_put(RESET_Pin, true);
