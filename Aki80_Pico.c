@@ -28,6 +28,8 @@
 
 #define TEST_Pin    22
 
+#include "basic/basic.h"
+
 #define TOGGLE() do {    gpio_xor_mask(((uint32_t)1)<<TEST_Pin); } while(0)
 
 void databus_control_forever(PIO pio, uint sm, uint offset) {
